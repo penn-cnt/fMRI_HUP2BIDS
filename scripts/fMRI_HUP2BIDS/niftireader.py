@@ -1,6 +1,6 @@
 import nibabel as nib
 import os
-from clean import clean_up
+from scripts.fMRI_HUP2BIDS.clean_files import clean_up
 
 WORKING_FOLDER_PATH = '/mnt/leif/littlab/users/ezou626/Q1_LFMRI/code/bids_utils/'
 

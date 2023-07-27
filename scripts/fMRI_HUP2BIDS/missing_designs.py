@@ -6,7 +6,7 @@ import os
 from typing import List
 import pandas as pd
 import json
-import clean
+import scripts.fMRI_HUP2BIDS.clean_files as clean_files
 
 WORKING_FOLDER_PATH = '/mnt/leif/littlab/users/ezou626/Q1_LFMRI/code/bids_utils/'
 
@@ -131,7 +131,7 @@ def mark_todos(not_completed: dict):
                 json.dump(task_data, file, indent=4)
         
 if __name__ == '__main__':
-    clean.clear_design_files()
+    clean_files.clear_design_files()
     #only select subjects with design files
     selected_subjects = [1, 9, 18, 24, 25, 26, 31, 33, 34, 35, 36]
     subject_nums = [str(i).zfill(3) for i in selected_subjects]

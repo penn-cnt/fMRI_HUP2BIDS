@@ -5,7 +5,7 @@ import json, os
 
 from pathlib import Path
 
-import clean
+import scripts.fMRI_HUP2BIDS.clean_files as clean_files
 
 WORKING_FOLDER_PATH = '/mnt/leif/littlab/users/ezou626/Q1_LFMRI/code/bids_utils/'
 
@@ -108,7 +108,7 @@ def _write_tsvs(func_folder_path: str, design_file_paths: str) -> None:
     except:
         with open(WORKING_FOLDER_PATH + 'bids_outputs/log.txt', 'a') as file:
             file.write(f'{subject} has no design files\n')
-            clean.clean_up('bids_temps/design_files', False)
+            clean_files.clean_up('bids_temps/design_files', False)
             
 def create_tsv():
     with open(WORKING_FOLDER_PATH + 'path_info.json', 'r') as file:

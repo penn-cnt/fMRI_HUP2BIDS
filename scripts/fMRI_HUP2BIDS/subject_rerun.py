@@ -1,7 +1,7 @@
 import os, shutil, json, glob
 from typing import List
 import event_tsv_writer
-import clean
+import scripts.fMRI_HUP2BIDS.clean_files as clean_files
 
 WORKING_FOLDER_PATH = '/mnt/leif/littlab/users/ezou626/Q1_LFMRI/code/bids_utils/'
 
@@ -11,7 +11,7 @@ def copy_subject(subject_id):
     """
     
     #clean subject folder
-    clean.clear_subject(subject_id)
+    clean_files.clear_subject(subject_id)
     
     #copy subject from location
     source_folder = WORKING_FOLDER_PATH + f'bids_temps/reruns/{subject_id}/ses-001'
@@ -54,10 +54,10 @@ def write_task_events(subject_num) -> None:
     
     event_tsv_writer.create_tsv()
     
-    clean.clear_design_files()
+    clean_files.clear_design_files()
 
 if __name__ == '__main__':
-    clean.clear_reruns()
+    clean_files.clear_reruns()
     
     selected_subjects = [i for i in range(1, 37)]
     #subject_list = copy_subjects('bsc_subjects.txt')

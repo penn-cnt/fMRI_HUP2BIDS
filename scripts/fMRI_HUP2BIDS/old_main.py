@@ -1,7 +1,7 @@
 import os, shutil, json, glob
 from typing import List
 import event_tsv_writer
-import clean
+import scripts.fMRI_HUP2BIDS.clean_files as clean_files
 
 WORKING_FOLDER_PATH = '/mnt/leif/littlab/users/ezou626/Q1_LFMRI/code/bids_utils/'
 
@@ -157,7 +157,7 @@ if __name__ == "__main__":
     get_map('bsc_subjects.txt')
     with open(WORKING_FOLDER_PATH + 'bids_outputs/subject_map.json', 'r') as file:
         subject_map = json.load(file)
-    clean.clean_up('bids_temps/new_folder', False)
+    clean_files.clean_up('bids_temps/new_folder', False)
     subject_list = [subject_map['sub-' + str(i).zfill(3)] for i in [1, 9, 18, 24, 25, 26, 31, 33, 34, 35, 36]]
     #run heudiconv for each subject
     run_heudiconv_data(subject_list, '/mnt/leif/littlab/data/Human_Data/language_fmri_data/source_data/sub-{subject}/ses-*/mr*/*/*')
