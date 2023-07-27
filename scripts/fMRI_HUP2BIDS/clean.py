@@ -6,6 +6,7 @@ def _clear_folder(folder) -> None:
     """
     Clears a folder of all files
     """
+    folder = WORKING_FOLDER_PATH + folder
     for filename in os.listdir(folder):
         file_path = os.path.join(folder, filename)
         try:
@@ -15,17 +16,12 @@ def _clear_folder(folder) -> None:
                 shutil.rmtree(file_path)
         except Exception as e:
             print('Failed to delete %s. Reason: %s' % (file_path, e))
-
-def clean_up(folder, remove_jsons = True) -> None:
+        
+def remove_top_level_jsons():
     """
-    Removes the temp files and past subject data from folders
+    Heudiconv generates top-level .json files for each task, which are not required
+    This function removes them
     """
-    #clear temps
-    _clear_folder(WORKING_FOLDER_PATH + folder)
-    
-    #remove top-level task.json files
-    if not remove_jsons:
-        return
     for i in os.listdir(WORKING_FOLDER_PATH + 'bids_data'):
         if i[:4] != 'task':
             continue

@@ -45,7 +45,6 @@ def copy_subjects(subject_file):
             
             #copy files
             for directory in glob.glob(source_folder + f'{subject[:-1]}/ses*/mr*/*'):
-                #print(directory) debugging!!!
                 _copy_from_location(directory, subject_id)
                 
             #update subject map
@@ -154,8 +153,8 @@ def add_intendedfor(subject_num):
 
 if __name__ == "__main__":
     
-    #subject_list = copy_subjects('bsc_subjects.txt')
-    #get_map('bsc_subjects.txt')
+    subject_list = copy_subjects('bsc_subjects.txt')
+    get_map('bsc_subjects.txt')
     with open(WORKING_FOLDER_PATH + 'bids_outputs/subject_map.json', 'r') as file:
         subject_map = json.load(file)
     clean.clean_up('bids_temps/new_folder', False)
@@ -164,7 +163,6 @@ if __name__ == "__main__":
     run_heudiconv_data(subject_list, '/mnt/leif/littlab/data/Human_Data/language_fmri_data/source_data/sub-{subject}/ses-*/mr*/*/*')
 
     
-    #write events for each subject
-    # for subject_num in subject_list:
-    #     write_task_events(subject_num)
-    #     add_intendedfor(subject_num)
+    for subject_num in subject_list:
+        write_task_events(subject_num)
+        add_intendedfor(subject_num)
