@@ -1,8 +1,6 @@
 import pandas as pd
-import numpy as np
 import nibabel as nib
 import json, os
-
 from pathlib import Path
 
 import scripts.fMRI_HUP2BIDS.clean_files as clean_files
