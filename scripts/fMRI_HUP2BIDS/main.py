@@ -1,15 +1,8 @@
-import os, os.path as path
-from sys import exit
+from folder_utils import get_folders, copy_subjects
+from clean_files import clear_folder
 
-#sketch
-#get source directory and output directory
-source_directory = input('Path to the source data directory: ')
-if not path.isdir(source_directory):
-    print('Provided path is not a directory')
-    exit()
-output_directory = input('Path to the output directory: ')
-
-#copy dicom files and structure to temp
+SCRIPT_FOLDER, SOURCE_DATA_FOLDER, OUTPUT_FOLDER = get_folders()
+copy_subjects(SCRIPT_FOLDER, SOURCE_DATA_FOLDER)
 
 #run heudiconv on files to convert func, anat, fmap MRI dicoms
 
