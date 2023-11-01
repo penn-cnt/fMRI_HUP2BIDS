@@ -2,12 +2,12 @@ import os, shutil, glob
 
 SCRIPT_FOLDER = os.path.dirname(os.path.realpath(__file__))
 
-def setup_folders():
+def setup_folders() -> None:
     for folder in ['temporary_files', 'config_files', 'output_files']:
         if not os.path.isdir(SCRIPT_FOLDER + folder):
             os.mkdir(SCRIPT_FOLDER + folder)
 
-def get_folders():
+def get_folders() -> (str, str, str):
     source_directory = input('Path to the source data directory: ')
     if not os.path.isdir(source_directory):
         print('Provided path is not a directory')
@@ -25,7 +25,7 @@ def copy_subject(subject: str, source_folder: str) -> None:
         destination = SCRIPT_FOLDER + f'temporary_files/source_data/{subject}/ses-001/{folder_name}'
         shutil.copytree(directory, destination)
     
-def copy_subjects(source_folder: str):
+def copy_subjects(source_folder: str) -> [str]:
     """
     Copy subjects from location to destination folder
     """
@@ -47,7 +47,7 @@ def clear_folder(folder_name) -> None:
     """
     Clears a folder of all files
     """
-    folder = SCRIPT_FOLDER + folder_name
+    folder = os.path.join(SCRIPT_FOLDER, folder_name)
     for filename in os.listdir(folder):
         file_path = os.path.join(folder, filename)
         try:
@@ -57,3 +57,13 @@ def clear_folder(folder_name) -> None:
                 shutil.rmtree(file_path)
         except Exception as e:
             print('Failed to delete %s. Reason: %s' % (file_path, e))
+            
+def remove_top_level_jsons(target_folder) -> None:
+    """
+    Heudiconv generates top-level .json files for each task, which are not required for BIDS
+    This function removes them
+    """
+    for file in os.listdir(target_folder):
+        if file[:4] != 'task' or file[-5:] != '.json':
+            continue
+        os.remove(os.path.join(target_folder, file))
