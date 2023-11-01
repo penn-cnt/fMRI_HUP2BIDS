@@ -4,11 +4,17 @@
 **.DS_Store**
 scripts/PIPELINE*
 scripts/fMRI_HUP2BIDS/temporary_files/*
+scripts/fMRI_HUP2BIDS/temporary_files
 scripts/fMRI_HUP2BIDS/config_files/*
+scripts/fMRI_HUP2BIDS/config_files
 scripts/fMRI_HUP2BIDS/output_files/*
+scripts/fMRI_HUP2BIDS/output_files
 scripts/fMRI_HUP2BIDS/__pycache__/*
+scripts/fMRI_HUP2BIDS/__pycache__
 unit_tests/machine_level/__pycache__/*
+unit_tests/machine_level/__pycache__
 unit_tests/model_level/__pycache__/*
+unit_tests/model_level/__pycache__
 .pytest_cache
 .vscode
 
