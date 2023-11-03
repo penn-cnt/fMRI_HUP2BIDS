@@ -197,6 +197,7 @@ def infotodict(seqinfo):
             continue
     
     config_info = None
+    
     with open(os.path.dirname(__file__) + '/path_info.json', 'r') as f:
         config_info = json.load(f)
 
