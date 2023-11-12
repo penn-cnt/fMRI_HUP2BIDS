@@ -67,23 +67,27 @@ def copy_subjects(source_folder: str) -> List[str]:
     
     sources = [source_folder for i in range(len(subjects))]
         
-    with Pool(5) as p:
+    with Pool(10) as p:
         r = p.starmap_async(copy_subject, list(zip(subjects, subject_folders, sources)))
         r.wait()
         
     return subjects
+
+def remove_item(file_path):
+    try:
+        if os.path.isfile(file_path) or os.path.islink(file_path):
+            os.unlink(file_path)
+        elif os.path.isdir(file_path):
+            shutil.rmtree(file_path)
+    except Exception as e:
+        print('Failed to delete %s. Reason: %s' % (file_path, e))
 
 def clear_folder(folder_name) -> None:
     """
     Clears a folder of all files
     """
     folder = os.path.join(SCRIPT_FOLDER, folder_name)
-    for filename in os.listdir(folder):
-        file_path = os.path.join(folder, filename)
-        try:
-            if os.path.isfile(file_path) or os.path.islink(file_path):
-                os.unlink(file_path)
-            elif os.path.isdir(file_path):
-                shutil.rmtree(file_path)
-        except Exception as e:
-            print('Failed to delete %s. Reason: %s' % (file_path, e))
+    paths = [os.path.join(folder, filename) for filename in os.listdir(folder)]
+    with Pool(10) as p:
+        p.map_async(remove_item, paths)
+        p.wait()
