@@ -3,33 +3,44 @@ import nibabel as nib
 import json, os
 from typing import List
 
-scenemem = {'onset': [0, 36, 72, 108, 144, 180, 216, 252, 288, 324, 360],
-                     'duration': [36, 36, 36, 36, 36, 36, 36, 36, 36, 36, 36],
-                     'trial_type':
-                     ['baseline','stimulus','baseline','stimulus','baseline','stimulus','baseline','stimulus','baseline','stimulus','baseline'],
-                     'tr': 3,
-                     'image_num': 132}
+scenemem = {
+    'data': {
+        'onset': [0, 36, 72, 108, 144, 180, 216, 252, 288, 324, 360],
+        'duration': [36, 36, 36, 36, 36, 36, 36, 36, 36, 36, 36],
+        'trial_type': ['baseline','stimulus','baseline','stimulus','baseline','stimulus','baseline','stimulus','baseline','stimulus','baseline'],
+    },
+    'name': 'scenemem',
+    'tr': 3,
+    'image_num': 132
+}
 #TODO: add binder info
-binder = {'onset': [],
-            'duration': [],
-            'trial_type':[],
-            'tr': 3,
-            'image_num': 140}
+binder = {
+    'data': {
+        'onset': [],
+        'duration': [],
+        'trial_type': [],
+    },
+    'name': 'binder',
+    'tr': 3,
+    'image_num': 140
+}
 presets = {'scenemem': scenemem}
 
 SCRIPT_FOLDER = os.path.dirname(os.path.realpath(__file__))
+DESIGN_FOLDER = os.path.join(SCRIPT_FOLDER, 'temporary_files/design_files')
 
-def _parse_design_name(design_file_path: str) -> str:
+def _parse_task_name(bids_file_path: str) -> str:
     """
     Parse design file path for task_name of form task-______
     """
-    file_name = design_file_path.split("/")[-1] #should be last in path
-    task_name = file_name.split("_")[2].split('-')[-1] #third in bids naming system
+    file_name = bids_file_path.split("/")[-1]
+    task_name = file_name.split("_")[2].split('-')[-1]
     
     #XXX: parsed names may differ from heuristic, update this to switch to consistent names
     name_map = {'rhyming': 'rhyme', 
                 'verbgeneration': 'verbgen', 
-                'wordgeneration': 'wordgen',}
+                'wordgeneration': 'wordgen'}
+    
     if task_name in name_map:
         task_name = name_map[task_name]
     
@@ -80,41 +91,36 @@ def _read_design(design_nifti: nib.nifti1, design_json: str) -> pd.DataFrame:
     }
     task_dataframe = pd.DataFrame(task_info, 
                         columns = ['onset', 'duration','trial_type'])
-    return task_dataframe
-
-def _parse_task_name(event_tsv_filename: str):
-    task_name = event_tsv_filename.split('_')[2].split('-')[1]
-    return task_name
-
-def _get_metadata(subject_num: str, task_name: str, run: str = '01'):
-    tr, image_num = None, None
-    func_path = WORKING_FOLDER_PATH + f'bids_data/sub-{subject_num}/ses-001/func/'
-    filename = f'sub-{subject_num}_ses-001_task-{task_name}_run-{run}_bold.json'
-    with open(func_path + filename, 'r') as file:
-        metadata = json.load(file)
-        tr = metadata['RepetitionTime']
-        image_num = metadata['dcmmeta_shape'][3]
-    return tr, image_num
+    return task_dataframe, tr, images
         
-def _get_designs(subject_num: str):
+def _get_subject_designs(subject_folder: str) -> dict:
     '''
-    Gets a map of task name to task event info
+    Gets all task designs from a subject
     ''' 
-    func_path = WORKING_FOLDER_PATH + f'bids_data/sub-{subject_num}/ses-001/func/'
+    for session in os.listdir(subject_folder):
+        func_path = os.path.join(SCRIPT_FOLDER, f'temporary_files/subject/{session}/func')
     
-    task_map = {}
+    subject_tasks = {}
     for file in os.listdir(func_path):
         
-        if not file[-10:] == 'events.tsv':
+        if not file[-7:] == '.nii.gz':
             continue
         
-        filepath = func_path + file
-        with open(filepath, 'r') as event_file:
-            taskname = _parse_task_name(file)
-            design_df = pd.read_csv(event_file, sep = '\t', index_col=False)
-            task_map[taskname] = design_df
+        filepath = os.path.join(func_path, file)
+        taskname = _parse_task_name(file)
+        design_df, tr, images = _read_design(filepath, filepath[:-7]+'.json')
+        subject_tasks[(taskname, tr, images)] = design_df
         
-    return task_map
+    return subject_tasks
+
+def _get_designs() -> dict:
+    tasks = {}
+    for subject in [i for i in os.listdir(DESIGN_FOLDER) if i[:3] == 'sub']:
+        subject_folder = os.path.join(DESIGN_FOLDER, subject)
+        for key, data in _get_subject_designs(subject_folder).items():
+            if key not in tasks:
+                tasks[key] = data
+    return tasks
 
 def _add_event_info(task_map: dict, task_name: str, tr: int, 
                     image_num: int, task_df: pd.DataFrame):
