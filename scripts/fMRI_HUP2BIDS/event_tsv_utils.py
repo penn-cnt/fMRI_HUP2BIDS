@@ -9,7 +9,6 @@ scenemem = {
         'duration': [36, 36, 36, 36, 36, 36, 36, 36, 36, 36, 36],
         'trial_type': ['baseline','stimulus','baseline','stimulus','baseline','stimulus','baseline','stimulus','baseline','stimulus','baseline'],
     },
-    'name': 'scenemem',
     'tr': 3,
     'image_num': 132
 }
@@ -33,6 +32,7 @@ def _parse_task_name(bids_file_path: str) -> str:
     """
     Parse design file path for task_name of form task-______
     """
+    
     file_name = bids_file_path.split("/")[-1]
     task_name = file_name.split("_")[2].split('-')[-1]
     
@@ -47,12 +47,15 @@ def _parse_task_name(bids_file_path: str) -> str:
     return task_name
 
     
-def _read_design(design_nifti: nib.nifti1, design_json: str) -> pd.DataFrame:
+def _read_design(design_nifti_path: str, design_json: str) -> pd.DataFrame:
     """
     Read design files and return pandas DataFrame containing information
     Refer to .json sidecard for TR to compute duration
     """
-    design_data = design_nifti.get_fdata() # type: ignore
+    
+    nifti = nib.load(design_nifti_path)
+    
+    design_data = nifti.get_fdata() # type: ignore
     
     #load a meaningful row of image, dimensions: (num_imgs, 120, 1)
     design_row = design_data.squeeze()[:][82]
@@ -91,6 +94,8 @@ def _read_design(design_nifti: nib.nifti1, design_json: str) -> pd.DataFrame:
     }
     task_dataframe = pd.DataFrame(task_info, 
                         columns = ['onset', 'duration','trial_type'])
+    del nifti
+    
     return task_dataframe, tr, images
         
 def _get_subject_designs(subject_folder: str) -> dict:
@@ -98,7 +103,7 @@ def _get_subject_designs(subject_folder: str) -> dict:
     Gets all task designs from a subject
     ''' 
     for session in os.listdir(subject_folder):
-        func_path = os.path.join(SCRIPT_FOLDER, f'temporary_files/subject/{session}/func')
+        func_path = os.path.join(subject_folder, f'{session}/func')
     
     subject_tasks = {}
     for file in os.listdir(func_path):
@@ -108,6 +113,7 @@ def _get_subject_designs(subject_folder: str) -> dict:
         
         filepath = os.path.join(func_path, file)
         taskname = _parse_task_name(file)
+        
         design_df, tr, images = _read_design(filepath, filepath[:-7]+'.json')
         subject_tasks[(taskname, tr, images)] = design_df
         
@@ -115,110 +121,47 @@ def _get_subject_designs(subject_folder: str) -> dict:
 
 def _get_designs() -> dict:
     tasks = {}
+    
     for subject in [i for i in os.listdir(DESIGN_FOLDER) if i[:3] == 'sub']:
         subject_folder = os.path.join(DESIGN_FOLDER, subject)
         for key, data in _get_subject_designs(subject_folder).items():
             if key not in tasks:
                 tasks[key] = data
-    return tasks
-
-def _add_event_info(task_map: dict, task_name: str, tr: int, 
-                    image_num: int, task_df: pd.DataFrame):
-    if task_name not in task_map:
-        task_map[task_name] = [(tr, image_num, task_df)]
-        return
-    for tr_i, image_num_i, task_df_i in task_map[task_name]:
-        if tr_i == tr and image_num_i == image_num and task_df_i.equals(task_df):
-            return
-    task_map[task_name].append((tr, image_num, task_df))             
-
-def unique_tasks(subject_nums: List[str]):
-    '''
-    Populate design_files folder with unique tsvs of events
-    '''
-    combined_task_map = {}
-    unwritten_tasks = {}
-    tasks_written = set()
-    for subject_num in subject_nums:
-        
-        subject_task_map = _get_designs(subject_num)
-        for task_name, task_df in subject_task_map.items():
-            if (task_name == 'binder'):
-                print(subject_num)
-            #strange columns
-            task_data: dict = task_df.to_dict('list')
-            tr, image_num = _get_metadata(subject_num, task_name)
-            
-            if "TODO -- fill in rows and add more tab-separated columns if desired" in task_data:
-                if task_name in unwritten_tasks:
-                    if (tr, image_num) in unwritten_tasks[task_name]:
-                        continue
-                    unwritten_tasks[task_name].append((tr, image_num))
-                    continue
-                unwritten_tasks[task_name] = [(tr, image_num)]
-                continue
-            
-            #weird extra column
-            if "Unnamed: 0" in task_data:
-                task_data.pop('Unnamed: 0')
-                task_df = pd.DataFrame(task_data)
                 
-            _add_event_info(combined_task_map, task_name, tr, image_num, task_df)
-            tasks_written.add((task_name, tr, image_num))
-    for name, tr, image_num in tasks_written:
-        try:
-            unwritten_tasks[name].remove((tr,image_num))
-        except:
-            pass        
-    return combined_task_map, {key: value for key, value in unwritten_tasks.items()}
-
-def save_event_info(task_map: dict):
-    design_folder = WORKING_FOLDER_PATH + 'bids_temps/design_files/'
-    for task_name, task_versions in task_map.items():
-        for index, (tr, image_num, task_df) in enumerate(task_versions):
-            task_data: dict = task_df.to_dict('list')
-            task_data['tr'] = tr
-            task_data['image_num'] = image_num
-            with open(design_folder + f'task-{task_name}_ver-{index}.json', 'w') as file:
-                json.dump(task_data, file, indent=4)
-                
-def mark_todos(not_completed: dict):
-    design_folder = WORKING_FOLDER_PATH + 'bids_temps/design_files/'
-    for task_name, uncompleted_list in not_completed.items():
-        for index, (tr, image_num) in enumerate(uncompleted_list):
-            task_data = None
-            if task_name in presets and presets[task_name]['tr'] == tr and presets[task_name]['image_num'] == image_num:
-                task_data = presets[task_name]
-            else:    
-                task_data = {'onset': [], 'duration':[], 'trial_type': [], 'tr': tr, 'image_num': image_num}
-            with open(design_folder + f'task-{task_name}_ver-{index}.json', 'w') as file:
-                json.dump(task_data, file, indent=4)
-
-def _write_tsvs(func_folder_path: str) -> None:
-    """
-    Read design_file_paths for design files,
-    read each design file for task structure,
-    write each to corresponding tsv in func_folder_path
+    for task in presets:
+        preset = presets[task]
+        data, tr, image_num, = preset['data'], preset['tr'], preset['image_num']
+        if (task, tr, image_num) not in tasks:
+            tasks[(task, tr, image_num)] = pd.DataFrame.from_dict(data)
     
-    func_folder_path: of the form ./bids_data/sub-___/ses-___/func
-    design_file_paths: bids_temps/design_files.txt
+    return tasks             
+
+def _write_subject_tsvs(DATASET_PATH, LOG_PATH, tasks) -> List[str]:
+    pass
+
+def write_events_tsvs(DATASET_PATH, LOG_PATH, tasks) -> None:
     """
-    func_path_object = Path(func_folder_path).absolute()
+
+    """
+    func_path_object = ""
     session = str(func_path_object).split("/")[-2]
     subject = str(func_path_object).split("/")[-3]
-    with open(design_file_paths, 'r') as design_files:
+    with open("", 'r') as design_files:
         
         for design_file_path in design_files:
             
-            task_name = _parse_design_name(design_file_path)
+            # task_name = _parse_design_name(design_file_path)
             design_dataframe = _read_design(design_file_path)
             #TODO: fix hardcoding of run number
             
-            file_name_1 = f'{subject}_{session}_{task_name}_run-01_events.tsv'
+            file_name_1 = f'{subject}_{session}_{"task_name"}_run-01_events.tsv'
             file_path = str(func_path_object) + '/' + file_name_1
             design_dataframe.to_csv(file_path, sep = '\t')
             
-            file_name_2 = f'{subject}_{session}_{task_name}_run-02_events.tsv'
+            file_name_2 = f'{subject}_{session}_{"task_name"}_run-02_events.tsv'
             file_path = str(func_path_object) + '/' + file_name_2
             if os.path.isfile(file_path):
                 design_dataframe.to_csv(file_path, sep = '\t', index = False)
+                
+if __name__ == '__main__':
+    print(_get_designs())

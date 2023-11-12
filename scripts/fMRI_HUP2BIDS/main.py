@@ -1,6 +1,6 @@
 from file_utils import setup_folders, get_folders, copy_subjects, clear_folder
 from heudiconv_utils import run_heudiconv_data, remove_top_level_jsons, add_intended_for, run_heudiconv_design
-from event_tsv_utils import write_event_tsvs
+from event_tsv_utils import write_events_tsvs
 import os
 
 if __name__ == "__main__":
