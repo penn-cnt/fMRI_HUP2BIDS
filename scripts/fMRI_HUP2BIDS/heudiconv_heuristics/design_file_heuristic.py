@@ -1,10 +1,8 @@
-import re, json
-
-WORKING_FOLDER_PATH = '/mnt/leif/littlab/users/ezou626/Q1_LFMRI/code/bids_utils/'
+import re, os, pathlib
 
 def create_key(template, outtype=('nii.gz',), annotation_classes=None):
     """
-    For heudiconv: standard run template
+    For heudiconv: standard key template
     """
     if template is None or not template:
         raise ValueError('Template must be a valid format string')
@@ -12,9 +10,8 @@ def create_key(template, outtype=('nii.gz',), annotation_classes=None):
 
 def infotodict(seqinfo):
     """
-    For heudiconv: customizable selection of files
+    For heudiconv: selects only design files for conversion
     """
-    
     info = {}
     
     for s in seqinfo:
@@ -38,21 +35,8 @@ def infotodict(seqinfo):
             task_name = s.protocol_name.split("_")[1].lower()
         
         #create key and add to info dict
-        design_string = ('sub-{subject}/{session}/func/sub-{subject}_{session}_task-' 
-            + task_name +'_run-01_bold') # type: ignore
+        design_string = 'sub-{subject}/{session}/func/sub-{subject}_{session}_task-' + task_name + '_run-01_bold'
         design = create_key(design_string)
         info[design] = [s.series_id]
-        
-        #TODO: add file based on subject number in path_info.json
-        
-        
-        with open(WORKING_FOLDER_PATH + 'path_info.json', 'r') as f:
-            subject_id = json.load(f)['subject_id']
-            design_string = (f'sub-{subject_id}/ses-001/func/sub-{subject_id}_ses-001_task-' 
-                + task_name +'_run-01_bold') # type: ignore
-        
-        #add design file to filelist
-        with open(WORKING_FOLDER_PATH + 'bids_temps/design_files.txt', 'a') as file:
-            file.write(WORKING_FOLDER_PATH + 'bids_temps/design_files/' + design_string + '\n')
-        
+            
     return info

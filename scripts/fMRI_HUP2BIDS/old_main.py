@@ -1,6 +1,6 @@
 import os, shutil, json, glob
 from typing import List
-import event_tsv_writer
+import event_tsv_utils
 import scripts.fMRI_HUP2BIDS.clean_files as clean_files
 
 WORKING_FOLDER_PATH = '/mnt/leif/littlab/users/ezou626/Q1_LFMRI/code/bids_utils/'

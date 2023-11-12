@@ -1,18 +1,8 @@
-'''
-Read event info from subjects with design folders to fill event info for others
-'''
-
-import os
-from typing import List
 import pandas as pd
-import json
-import clean_files
+import nibabel as nib
+import json, os
+from typing import List
 
-WORKING_FOLDER_PATH = '/mnt/leif/littlab/users/ezou626/Q1_LFMRI/code/bids_utils/'
-
-"""
-For tasks which don't have design files to generate events tsv files
-"""
 scenemem = {'onset': [0, 36, 72, 108, 144, 180, 216, 252, 288, 324, 360],
                      'duration': [36, 36, 36, 36, 36, 36, 36, 36, 36, 36, 36],
                      'trial_type':
@@ -26,6 +16,71 @@ binder = {'onset': [],
             'tr': 3,
             'image_num': 140}
 presets = {'scenemem': scenemem}
+
+SCRIPT_FOLDER = os.path.dirname(os.path.realpath(__file__))
+
+def _parse_design_name(design_file_path: str) -> str:
+    """
+    Parse design file path for task_name of form task-______
+    """
+    file_name = design_file_path.split("/")[-1] #should be last in path
+    task_name = file_name.split("_")[2].split('-')[-1] #third in bids naming system
+    
+    #XXX: parsed names may differ from heuristic, update this to switch to consistent names
+    name_map = {'rhyming': 'rhyme', 
+                'verbgeneration': 'verbgen', 
+                'wordgeneration': 'wordgen',}
+    if task_name in name_map:
+        task_name = name_map[task_name]
+    
+    return task_name
+
+    
+def _read_design(design_nifti: nib.nifti1, design_json: str) -> pd.DataFrame:
+    """
+    Read design files and return pandas DataFrame containing information
+    Refer to .json sidecard for TR to compute duration
+    """
+    design_data = design_nifti.get_fdata() # type: ignore
+    
+    #load a meaningful row of image, dimensions: (num_imgs, 120, 1)
+    design_row = design_data.squeeze()[:][82]
+    first_onset, images, weight = 0, 0, True if design_row[0] else False
+    last_value = design_row[0]
+    
+    #scan row for changes to mark end
+    onsets, durations, weights = [], [], []
+    for i in design_row:
+        if i != last_value:
+            onsets.append(first_onset)
+            durations.append(images - first_onset)
+            weights.append(weight)
+            weight = not weight
+            first_onset = images
+            last_value = i
+        images += 1
+    onsets.append(first_onset)
+    durations.append(images - first_onset)
+    weights.append(weight)
+    
+    #get tr, modify information
+    tr = None
+    with open(design_json, 'r') as file:
+        design_info = json.load(file)
+        tr = design_info["RepetitionTime"]
+    onsets = [tr * i for i in onsets]
+    durations = [tr * i for i in durations]
+    trial_types = ['stimulus' if i else 'baseline' for i in weights]
+    
+    #load information into dataframe
+    task_info = {
+        'onset': onsets,
+        'duration': durations,
+        'trial_type': trial_types,
+    }
+    task_dataframe = pd.DataFrame(task_info, 
+                        columns = ['onset', 'duration','trial_type'])
+    return task_dataframe
 
 def _parse_task_name(event_tsv_filename: str):
     task_name = event_tsv_filename.split('_')[2].split('-')[1]
@@ -132,3 +187,32 @@ def mark_todos(not_completed: dict):
                 task_data = {'onset': [], 'duration':[], 'trial_type': [], 'tr': tr, 'image_num': image_num}
             with open(design_folder + f'task-{task_name}_ver-{index}.json', 'w') as file:
                 json.dump(task_data, file, indent=4)
+
+def _write_tsvs(func_folder_path: str) -> None:
+    """
+    Read design_file_paths for design files,
+    read each design file for task structure,
+    write each to corresponding tsv in func_folder_path
+    
+    func_folder_path: of the form ./bids_data/sub-___/ses-___/func
+    design_file_paths: bids_temps/design_files.txt
+    """
+    func_path_object = Path(func_folder_path).absolute()
+    session = str(func_path_object).split("/")[-2]
+    subject = str(func_path_object).split("/")[-3]
+    with open(design_file_paths, 'r') as design_files:
+        
+        for design_file_path in design_files:
+            
+            task_name = _parse_design_name(design_file_path)
+            design_dataframe = _read_design(design_file_path)
+            #TODO: fix hardcoding of run number
+            
+            file_name_1 = f'{subject}_{session}_{task_name}_run-01_events.tsv'
+            file_path = str(func_path_object) + '/' + file_name_1
+            design_dataframe.to_csv(file_path, sep = '\t')
+            
+            file_name_2 = f'{subject}_{session}_{task_name}_run-02_events.tsv'
+            file_path = str(func_path_object) + '/' + file_name_2
+            if os.path.isfile(file_path):
+                design_dataframe.to_csv(file_path, sep = '\t', index = False)

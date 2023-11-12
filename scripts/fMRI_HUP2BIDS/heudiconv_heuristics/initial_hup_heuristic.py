@@ -96,7 +96,7 @@ bold_tu = create_key(
 
 
 def infotodict(seqinfo):
-    print("\n\n\n\nHEURISTIC CALL\n\n\n\n")
+    print("\nRUNNING HEUDICONV ON NEXT SUBJECT\n")
     skipped = set()
     last_run = len(seqinfo)
 
@@ -108,17 +108,17 @@ def infotodict(seqinfo):
             binder_run2:[],verbgen_run1: [], verbgen_run2: [], rest_run1: [], rest_run2: [],
             bold_tu: [],asl: [], m0: [], mean_perf: [], b0_phase: [], b0_mag: []}
 
-# sometimes patients struggle with a task the first time around (or something
-# else goes wrong and often some tasks are repeated. This function accomodates
-# the variable number of task runs
+    # sometimes patients struggle with a task the first time around (or something
+    # else goes wrong and often some tasks are repeated. This function accomodates
+    # the variable number of task runs
     def get_both_series(key1, key2, s):
          if len(info[key1]) == 0:
              info[key1].append(s.series_id)
          else:
              info[key2].append(s.series_id)
 
-# this doesn't need to be a function but using it anyway for aesthetic symmetry
-# with above function
+    # this doesn't need to be a function but using it anyway for aesthetic symmetry
+    # with above function
     def get_series(key, s):
             info[key].append(s.series_id)
 
@@ -185,8 +185,6 @@ def infotodict(seqinfo):
                 get_series(m0,s)
             elif s.series_description.endswith("_MeanPerf"):
                 get_series(mean_perf,s)
-
-        
         elif "b0" in protocol:
             if "P" in s.image_type:
                 get_series(b0_phase,s)
@@ -195,90 +193,4 @@ def infotodict(seqinfo):
         else:
             skipped.add(s.dcm_dir_name)
             continue
-    
-    config_info = None
-    
-    with open(os.path.dirname(__file__) + '/path_info.json', 'r') as f:
-        config_info = json.load(f)
-
-    subject = config_info["subject_id"]
-    out_dir = '/mnt/leif/littlab/users/ezou626/Q1_LFMRI/code/bids_utils/bids_outputs/'
-
-    config_info['subject_id'] = str(int(config_info['subject_id']) + 1).zfill(3)
-
-    with open(os.path.dirname(__file__) + '/path_info.json', 'w') as f:
-        json.dump(config_info, f)
-    
-    try:
-        os.mkdir(out_dir)
-    except:
-        pass
-    with open(out_dir + f'report_{subject}.txt', 'w') as file:
-        file.write("Skipped Series:\n")
-        for skipped_series in skipped:
-            file.write(skipped_series + '\n')
-        file.write('\n')
-    
     return info
-
-MetadataExtras = {
-   b0_phase: {
-       "EchoTime1": 0.00507,
-       "EchoTime2": 0.00753
-   },
-   asl: {
-   "PulseSequenceType": "3D_SPIRAL",
-       "PulseSequenceDetails" : "WIP" ,
-       "RepetitionTime":4.2,
-       "LabelingType": "PCASL",
-       "LabelingDuration": 1.8,
-       "PostLabelingDelay": 1.8,
-       "BackgroundSuppression": True,
-       "BackgroundSuppressionNumberPulses": 2,
-       "M0": "*_m0scan.nii",
-       "LabelingOrientation":"transversal",
-       "LabelingDistance":105,
-       "LabelingPulseAverageGradient": 10,
-       "LabelingPulseMaximumGradient": 80,
-       "VascularCrushing": False,
-       "PulseDuration": 0.0005,
-       "LabelingPulseInterval": 0.00038,
-       "PCASLType":"unbalanced",
-       "LabelingEfficiency":0.72},
-     binder_run1: {
-     "FullTaskName": "Binder Semantic Decision"},
-     binder_run2: {
-     "FullTaskName": "Binder Semantic Decision"},
-     object_run1: {
-     "FullTaskName": "Object Naming"},
-     object_run2: {
-     "FullTaskName": "Object Naming"},
-     rhyme_run1: {
-     "FullTaskName": "Rhyme Matching"},
-     rhyme_run2: {
-     "FullTaskName": "Rhyme Matching"},
-     scenemem_run1: {
-     "FullTaskName": "Scene Memory"},
-     scenemem_run2: {
-     "FullTaskName": "Scene Memory"},
-     sentence_run1: {
-     "FullTaskName": "Sentence Completion"},
-     sentence_run2: {
-     "FullTaskName": "Sentence Completion"},
-     verbgen_run1: {
-     "FullTaskName": "Verb Generation"},
-     verbgen_run2: {
-     "FullTaskName": "Verb Generation"},
-     auditory_run1: {
-     "FullTaskName": "Audio Word Lists"},
-     auditory_run2: {
-     "FullTaskName": "Audio Word Lists"},
-     picture_run1: {
-     "FullTaskName": "Picture Naming"},
-     picture_run2: {
-     "FullTaskName": "Picture Naming"},
-     wordgen_run1: {
-     "FullTaskName": "Word Generation"},
-     wordgen_run2: {
-     "FullTaskName": "Word Generation"},
-}
