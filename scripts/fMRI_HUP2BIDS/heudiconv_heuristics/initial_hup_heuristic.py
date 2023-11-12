@@ -20,9 +20,13 @@ t2_2d = create_key(
 t2_cor = create_key(
      'sub-{subject}/{session}/anat/sub-{subject}_{session}_acq-coronal_T2w')
 flair = create_key(
-    'sub-{subject}/{session}/anat/sub-{subject}_{session}_FLAIR')
+    'sub-{subject}/{session}/anat/sub-{subject}_{session}_run-01_FLAIR')
 flair2 = create_key(
-    'sub-{subject}/{session}/anat/sub-{subject}_{session}_acq-3D_FLAIR')
+    'sub-{subject}/{session}/anat/sub-{subject}_{session}_run-02_FLAIR')
+flair3d1 = create_key(
+    'sub-{subject}/{session}/anat/sub-{subject}_{session}_acq-3D_run-01_FLAIR')
+flair3d2 = create_key(
+    'sub-{subject}/{session}/anat/sub-{subject}_{session}_acq-3D_run-02_FLAIR')
 tof1 = create_key(
     'sub-{subject}/{session}/anat/sub-{subject}_{session}_angio')
 tof2 = create_key(
@@ -138,9 +142,9 @@ def infotodict(seqinfo):
         elif "t2_tse_coronal" in protocol or 't2 cor' in protocol:
             get_series(t2_cor, s)
         elif "tra_flair" in protocol:
-            get_series(flair,s)
+            get_both_series(flair, flair2,s)
         elif "flair" in protocol and "3d" in protocol or 't2 flair' in protocol or 't2 flair cor' in protocol or 'axial flair' in protocol or 't2_flair' in protocol:
-            get_series(flair2,s)
+            get_both_series(flair3d1, flair3d2, s)
 
         elif "tof" in protocol:
             if "COR" in s.series_description:
@@ -179,12 +183,12 @@ def infotodict(seqinfo):
 
         elif "spiral" in protocol:
             skipped.add(s.dcm_dir_name)
-            if s.series_description.endswith("_ASL"):
-                get_series(asl,s)
-            elif s.series_description.endswith("_M0"):
-                get_series(m0,s)
-            elif s.series_description.endswith("_MeanPerf"):
-                get_series(mean_perf,s)
+            # if s.series_description.endswith("_ASL"):
+            #     get_series(asl,s)
+            # elif s.series_description.endswith("_M0"):
+            #     get_series(m0,s)
+            # elif s.series_description.endswith("_MeanPerf"):
+            #     get_series(mean_perf,s)
         elif "b0" in protocol:
             if "P" in s.image_type:
                 get_series(b0_phase,s)
