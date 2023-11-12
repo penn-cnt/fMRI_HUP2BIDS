@@ -102,20 +102,23 @@ def _get_subject_designs(subject_folder: str) -> dict:
     '''
     Gets all task designs from a subject
     ''' 
+    subject_tasks = {}
     for session in os.listdir(subject_folder):
         func_path = os.path.join(subject_folder, f'{session}/func')
-    
-    subject_tasks = {}
-    for file in os.listdir(func_path):
         
-        if not file[-7:] == '.nii.gz':
-            continue
+        if not os.path.isdir(func_path):
+            return {}
         
-        filepath = os.path.join(func_path, file)
-        taskname = _parse_task_name(file)
-        
-        design_df, tr, images = _read_design(filepath, filepath[:-7]+'.json')
-        subject_tasks[(taskname, tr, images)] = design_df
+        for file in os.listdir(func_path):
+            
+            if not file[-7:] == '.nii.gz':
+                continue
+            
+            filepath = os.path.join(func_path, file)
+            taskname = _parse_task_name(file)
+            
+            design_df, tr, images = _read_design(filepath, filepath[:-7]+'.json')
+            subject_tasks[(taskname, tr, images)] = design_df
         
     return subject_tasks
 
@@ -134,34 +137,43 @@ def _get_designs() -> dict:
         if (task, tr, image_num) not in tasks:
             tasks[(task, tr, image_num)] = pd.DataFrame.from_dict(data)
     
-    return tasks             
+    return tasks
 
-def _write_subject_tsvs(DATASET_PATH, LOG_PATH, tasks) -> List[str]:
-    pass
-
-def write_events_tsvs(DATASET_PATH, LOG_PATH, tasks) -> None:
+def _write_subject_tsvs(subject_folder: str, log_path: str, tasks: dict) -> None:
+    missing = []
+    for session in os.listdir(subject_folder):
+        func_path = os.path.join(subject_folder, f'{session}/func')
+        if not os.path.isdir(func_path):
+            continue
+        for file in os.listdir(func_path):
+            if file[-4:] != 'json':
+                continue
+            file_path = os.path.join(func_path, file)
+            task_name = _parse_task_name(file_path)
+            tr, images = 0, 0
+            with open(file_path, 'r') as f:
+                design_info = json.load(f)
+                tr = design_info["RepetitionTime"]
+                images = design_info["dcmmeta_shape"][-1]
+            key = (task_name, tr, images)
+            if key in tasks:
+                with open(file_path[:-9] + 'events.tsv', 'w') as f:
+                    tasks[key].to_csv(f, sep='\t', index = False)
+            else:
+                missing.append((session, file[-10], key))
+    with open(log_path, 'w') as f:          
+        for session, file, key in missing:
+            f.write(f'{subject_folder.split("/")[-1]}: {session}, {file}, {key}\n')
+    
+def write_events_tsvs(dataset_path: str, log_folder_path: str) -> None:
     """
-
+    Writes the events.tsv files of all subject in the dataset
     """
-    func_path_object = ""
-    session = str(func_path_object).split("/")[-2]
-    subject = str(func_path_object).split("/")[-3]
-    with open("", 'r') as design_files:
-        
-        for design_file_path in design_files:
-            
-            # task_name = _parse_design_name(design_file_path)
-            design_dataframe = _read_design(design_file_path)
-            #TODO: fix hardcoding of run number
-            
-            file_name_1 = f'{subject}_{session}_{"task_name"}_run-01_events.tsv'
-            file_path = str(func_path_object) + '/' + file_name_1
-            design_dataframe.to_csv(file_path, sep = '\t')
-            
-            file_name_2 = f'{subject}_{session}_{"task_name"}_run-02_events.tsv'
-            file_path = str(func_path_object) + '/' + file_name_2
-            if os.path.isfile(file_path):
-                design_dataframe.to_csv(file_path, sep = '\t', index = False)
+    missing_task_file = os.path.join(log_folder_path, 'missing_task_designs.txt')
+    tasks = _get_designs()
+    for subject in [i for i in os.listdir(dataset_path) if i[:3] == 'sub']:
+        subject_folder = os.path.join(dataset_path, subject)
+        _write_subject_tsvs(subject_folder, missing_task_file, tasks)
                 
 if __name__ == '__main__':
     print(_get_designs())

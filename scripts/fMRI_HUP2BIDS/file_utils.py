@@ -6,13 +6,14 @@ SCRIPT_FOLDER = os.path.dirname(os.path.realpath(__file__))
 
 def setup_folders() -> None:
     """
-    Create working folders required for script
+    Create/clear working folders required for script
     """
-    for folder_name in ['temporary_files', 'config_files', 'output_files', 'output_files/dataset',
-                   'output_files/logs', 'temporary_files/design_files', 'temporary_files/source_data']:
+    for folder_name in ['temporary_files', 'config_files', 'temporary_files/design_files', 'temporary_files/source_data']:
         folder = os.path.join(SCRIPT_FOLDER, folder_name)
         if not os.path.isdir(folder):
             os.mkdir(folder)
+    clear_folder("temporary_files/source_data")
+    clear_folder("temporary_files/design_files")
 
 def get_folders() -> (str, str, str):
     """
@@ -23,7 +24,14 @@ def get_folders() -> (str, str, str):
         print('Provided path is not a directory')
         exit()
     output_directory = input('Path to the output directory: ')
-    return SCRIPT_FOLDER, source_directory, output_directory
+    if not os.path.isdir(output_directory):
+        print('Creating output directory since it does not exist')
+        os.mkdir(output_directory)
+    dataset_directory = os.path.join(output_directory, 'dataset')
+    log_directory = os.path.join(output_directory, 'logs')
+    if not os.path.isdir(log_directory):
+        os.mkdir(log_directory)
+    return SCRIPT_FOLDER, source_directory, output_directory, dataset_directory, log_directory
 
 def copy_subject(subject_id: str, subject_folder: str, source_folder: str) -> None:
     """
